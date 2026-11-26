@@ -1,0 +1,1030 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#10131e">
+<title>Два берега — история Саши и Ани</title>
+<style>
+:root{color-scheme:dark;--ink:#f4ead8;--muted:#b7b0aa;--gold:#e7bd77;--panel:rgba(14,17,27,.94)}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#0b0e16;color:var(--ink);font-family:Georgia,'Times New Roman',serif;touch-action:none}
+#game{position:fixed;inset:0;display:grid;place-items:center;background:radial-gradient(ellipse at 50% 40%,#202638 0,#0b0e16 72%)}
+#frame{position:relative;width:min(100vw,177.7778vh);height:min(100vh,56.25vw);aspect-ratio:16/9;overflow:hidden;background:#101522;box-shadow:0 20px 90px #000b;border:1px solid #ffffff18}
+canvas{display:block;width:100%;height:100%;image-rendering:pixelated;image-rendering:crisp-edges}
+#hud{position:absolute;inset:0;pointer-events:none}
+#chapter{position:absolute;left:3.1%;top:4%;font:11px/1.3 Arial,sans-serif;letter-spacing:.22em;text-transform:uppercase;color:#f2d6a4;text-shadow:0 2px 5px #000;opacity:.92}
+#hint{position:absolute;right:3%;top:4%;font:11px Arial,sans-serif;color:#eee0c7;text-shadow:0 2px 5px #000;text-align:right}
+#dialogue{position:absolute;left:5%;right:5%;bottom:4.5%;min-height:25%;padding:2.1% 2.5% 1.7%;background:linear-gradient(135deg,rgba(15,19,30,.97),rgba(27,29,39,.94));border:1px solid #d6b77c88;box-shadow:0 8px 30px #0009;pointer-events:auto;display:none}
+#speaker{font:700 clamp(10px,1.3vw,16px) Arial,sans-serif;color:#edc98e;letter-spacing:.08em;margin-bottom:.8%}
+#text{font-size:clamp(12px,1.65vw,20px);line-height:1.42;white-space:pre-wrap;max-width:100%;color:#f4eee4}
+#continue{position:absolute;right:2%;bottom:9%;font:10px Arial,sans-serif;color:#d9bd8e;letter-spacing:.12em;animation:pulse 1.2s infinite}
+@keyframes pulse{50%{opacity:.35}}
+#choices{display:flex;gap:8px;flex-wrap:wrap;margin-top:1.4%;pointer-events:auto}
+.choice{border:1px solid #c9a56d;background:#252536;color:#f7e8ce;padding:8px 13px;font:12px Arial,sans-serif;cursor:pointer}.choice:hover,.choice:focus{background:#564333;outline:none}
+#mobile{position:absolute;inset:auto 0 0 0;height:35%;display:none;pointer-events:none}
+.pad{position:absolute;left:3%;bottom:7%;display:grid;grid-template-columns:repeat(3,42px);grid-template-rows:repeat(2,38px);gap:3px;pointer-events:auto}
+.pad button,.action{border:1px solid #ffffff45;background:#11182799;color:#fff;border-radius:8px;font:18px Arial,sans-serif;backdrop-filter:blur(4px);touch-action:none}
+.pad button:nth-child(1){grid-column:2}.pad button:nth-child(2){grid-column:1;grid-row:2}.pad button:nth-child(3){grid-column:2;grid-row:2}.pad button:nth-child(4){grid-column:3;grid-row:2}
+.action{position:absolute;right:4%;bottom:12%;width:62px;height:62px;border-radius:50%;font:700 12px Arial,sans-serif;color:#f4d5a1;pointer-events:auto}
+#start{position:absolute;inset:0;display:grid;place-items:center;background:linear-gradient(180deg,#0d1320aa,#0b0e16e8);pointer-events:auto}
+.start-card{width:min(72%,540px);text-align:center;padding:5% 4%;background:#111827e8;border:1px solid #d8b77c77;box-shadow:0 15px 50px #0009}
+.start-card h1{font-size:clamp(28px,5vw,58px);font-weight:400;letter-spacing:.08em;margin:0 0 7px;color:#f2d5a3}
+.start-card .sub{font:11px Arial,sans-serif;letter-spacing:.25em;color:#c3b6a3;text-transform:uppercase;margin-bottom:22px}
+.start-card p{font-size:clamp(13px,1.5vw,17px);line-height:1.5;color:#e0d8cc;margin:0 auto 22px;max-width:420px}
+#startBtn{border:1px solid #e1bd80;background:#47382d;color:#fff1d7;padding:12px 26px;font:12px Arial,sans-serif;letter-spacing:.18em;text-transform:uppercase;cursor:pointer}
+#startBtn:hover{background:#725338}
+#saveNote{font:10px Arial,sans-serif;color:#8f918f;margin-top:14px}
+#toast{position:absolute;left:50%;top:13%;transform:translateX(-50%);background:#101827e8;border:1px solid #c8a875;padding:8px 14px;font:11px Arial,sans-serif;color:#f1dfbf;opacity:0;transition:opacity .25s;pointer-events:none;white-space:nowrap}
+@media (pointer:coarse),(max-width:700px){#mobile{display:block}#hint{top:8%;font-size:9px}#chapter{font-size:9px}#dialogue{bottom:3%;min-height:30%;padding:3%}#text{font-size:clamp(12px,3vw,17px)}.start-card{width:88%;padding:8% 5%}}
+</style>
+</head>
+<body>
+<div id="game"><div id="frame">
+<canvas id="screen" width="480" height="270" aria-label="Игра Два берега"></canvas>
+<div id="hud">
+<div id="chapter"></div><div id="hint"></div><div id="toast"></div>
+<div id="dialogue">
+<div id="speaker"></div><div id="text"></div><div id="choices"></div>
+<div id="continue">ПРОБЕЛ / E / КАСАНИЕ</div>
+</div>
+<div id="mobile">
+<div class="pad">
+<button data-move="up">▲</button>
+<button data-move="left">◀</button>
+<button data-move="down">▼</button>
+<button data-move="right">▶</button>
+</div>
+<button class="action" id="action">ДЕЙСТВИЕ</button>
+</div>
+<div id="start">
+<div class="start-card">
+<h1>Два берега</h1>
+<div class="sub">История Саши и Ани</div>
+<p>Два человека. Два окна в вечернем Петербурге. И история, которая начинается с обычного сообщения.</p>
+<button id="startBtn">Начать историю</button>
+<div id="saveNote">Автосохранение включено · Можно играть на телефоне и компьютере</div>
+</div>
+</div>
+</div></div></div>
+
+<script>
+(()=>{'use strict';
+
+const canvas=document.getElementById('screen');
+const ctx=canvas.getContext('2d',{alpha:false});
+const W=480,H=270;
+const chapterEl=document.getElementById('chapter');
+const hintEl=document.getElementById('hint');
+const dialogueEl=document.getElementById('dialogue');
+const speakerEl=document.getElementById('speaker');
+const textEl=document.getElementById('text');
+const choicesEl=document.getElementById('choices');
+const startEl=document.getElementById('start');
+const toastEl=document.getElementById('toast');
+
+ctx.imageSmoothingEnabled=false;
+
+const SAVE_KEY='dva_berega_save_v1';
+
+const chapters=[
+'01 · ДВА ВЕЧЕРА',
+'02 · ПЕРЕПИСКА',
+'03 · BLACKWOOD',
+'04 · ДОМОЙ К АНЕ',
+'05 · СТАНОВИТСЯ БЛИЖЕ',
+'06 · ПРИЗНАНИЕ',
+'07 · ЦВЕТЫ',
+'08 · ПЕРВОЕ МАЯ'
+];
+
+const scenes={
+intro:{chapter:0,kind:'split',title:'Два вечера',spawn:[240,220],objects:[]},
+chat:{chapter:1,kind:'chat',title:'Переписка',spawn:[240,220],objects:[{id:'phone',x:240,y:185,label:'Телефон'}]},
+pub:{chapter:2,kind:'pub',title:'Blackwood · Невский проспект',spawn:[90,216],objects:[{id:'anya',x:315,y:173,label:'Аня'},{id:'table',x:200,y:210,label:'Столик'},{id:'door',x:450,y:200,label:'Выход'}]},
+walk:{chapter:3,kind:'street',title:'Вечерний Петербург',spawn:[90,220],objects:[{id:'shop',x:255,y:190,label:'Магазин'},{id:'anyaDoor',x:440,y:205,label:'Подъезд'}]},
+anyaHome:{chapter:3,kind:'home',title:'Квартира Ани',spawn:[80,225],objects:[{id:'guitar',x:355,y:195,label:'Гитара'},{id:'sofa',x:220,y:225,label:'Диван'},{id:'kitchen',x:425,y:195,label:'Кухня'}]},
+closer:{chapter:4,kind:'montage',title:'Время вместе',spawn:[240,220],objects:[{id:'memory',x:240,y:200,label:'Воспоминания'}]},
+cottage:{chapter:5,kind:'cottage',title:'Веранда · Видеозвонок',spawn:[100,220],objects:[{id:'phone',x:340,y:190,label:'Телефон'}]},
+flowers:{chapter:6,kind:'street',title:'На следующий день',spawn:[90,220],objects:[{id:'flowers',x:260,y:190,label:'Цветы'},{id:'door',x:440,y:205,label:'Дом'}]},
+bathroom:{chapter:7,kind:'bath',title:'Первое мая',spawn:[100,220],objects:[{id:'anya',x:315,y:205,label:'Аня'},{id:'mirror',x:240,y:90,label:'Зеркало'}]},
+ending:{chapter:7,kind:'ending',title:'Начало',spawn:[240,220],objects:[]}
+};
+
+let state={
+scene:'intro',x:240,y:220,face:1,dialogue:null,line:0,
+locked:false,done:{},flags:{},lastTime:0,toastTimer:0,started:false
+};
+
+let keys={};
+let touchMove={x:0,y:0};
+let near=null;
+let walkTick=0;
+
+function save(){
+try{
+localStorage.setItem(SAVE_KEY,JSON.stringify({
+scene:state.scene,x:state.x,y:state.y,
+done:state.done,flags:state.flags,started:state.started
+}));
+}catch(e){}
+}
+
+function load(){
+try{
+const s=JSON.parse(localStorage.getItem(SAVE_KEY)||'null');
+if(s&&scenes[s.scene]){
+state.scene=s.scene;
+state.x=Number.isFinite(s.x)?s.x:scenes[s.scene].spawn[0];
+state.y=Number.isFinite(s.y)?s.y:scenes[s.scene].spawn[1];
+state.done=s.done||{};
+state.flags=s.flags||{};
+state.started=!!s.started;
+return true;
+}
+}catch(e){}
+return false;
+}
+
+function toast(t){
+toastEl.textContent=t;
+toastEl.style.opacity='1';
+state.toastTimer=2.2;
+}
+
+function rect(x,y,w,h,c){
+ctx.fillStyle=c;
+ctx.fillRect(Math.round(x),Math.round(y),Math.round(w),Math.round(h));
+}
+
+function line(x1,y1,x2,y2,c,w=1){
+ctx.strokeStyle=c;
+ctx.lineWidth=w;
+ctx.beginPath();
+ctx.moveTo(x1,y1);
+ctx.lineTo(x2,y2);
+ctx.stroke();
+}
+
+function pixelText(t,x,y,size=8,color='#e8dfd0',align='left'){
+ctx.fillStyle=color;
+ctx.font=`${size}px monospace`;
+ctx.textAlign=align;
+ctx.fillText(t,x,y);
+ctx.textAlign='left';
+}
+
+function noise(seed=1,count=300){
+let n=seed;
+for(let i=0;i<count;i++){
+n=(n*1664525+1013904223)>>>0;
+const x=n%W;
+n=(n*1664525+1013904223)>>>0;
+const y=n%H;
+const a=.035+((n>>>8)%5)*.012;
+ctx.fillStyle=`rgba(255,235,195,${a})`;
+ctx.fillRect(x,y,1,1);
+}
+}
+
+function vignette(){
+const g=ctx.createRadialGradient(240,130,45,240,130,300);
+g.addColorStop(0,'rgba(0,0,0,0)');
+g.addColorStop(1,'rgba(0,0,0,.52)');
+ctx.fillStyle=g;
+ctx.fillRect(0,0,W,H);
+}
+
+function windowGlow(x,y,w,h,warm=true){
+rect(x-3,y-3,w+6,h+6,'#171c28');
+rect(x,y,w,h,'#25364a');
+rect(x+2,y+2,w-4,h-4,warm?'#e7b66f':'#9db6c9');
+rect(x+w/2-1,y,2,h,'#3a4050');
+rect(x,y+h/2-1,w,2,'#3a4050');
+}
+
+function drawPerson(x,y,type='sasha',scale=1,pose=0){
+ctx.save();
+ctx.translate(Math.round(x),Math.round(y));
+ctx.scale(scale,scale);
+const anya=type==='anya';
+
+rect(-9,0,18,3,'#090d14');
+rect(-6,-13,5,13,anya?'#39445b':'#303b4b');
+rect(1,-13,5,13,anya?'#39445b':'#303b4b');
+rect(-7,-2,7,3,'#171b24');
+rect(1,-2,7,3,'#171b24');
+
+rect(-9,-29,18,17,anya?'#8b5260':'#526b79');
+rect(-11,-27,4,14,anya?'#d4a47f':'#c08c70');
+rect(7,-27,4,14,anya?'#d4a47f':'#c08c70');
+
+rect(-3,-34,6,6,'#d7a982');
+rect(-7,-44,14,12,'#e4b996');
+rect(-8,-43,2,8,'#c99075');
+rect(6,-43,2,8,'#c99075');
+
+if(anya){
+rect(-8,-48,16,6,'#d9c18c');
+rect(-9,-44,3,13,'#cdb47d');
+rect(6,-45,4,18,'#cdb47d');
+rect(-7,-50,13,3,'#e3cf9e');
+rect(2,-32,7,18,'#d2b77f');
+}else{
+rect(-8,-47,16,5,'#493a32');
+rect(-9,-44,3,7,'#493a32');
+rect(5,-44,3,7,'#493a32');
+}
+
+rect(-4,-39,2,2,'#302b2a');
+rect(3,-39,2,2,'#302b2a');
+rect(-2,-34,4,1,'#9b5e58');
+
+if(pose){
+rect(-12,-25,4,7,'#d7a982');
+rect(8,-25,4,7,'#d7a982');
+}
+ctx.restore();
+}
+
+function drawRain(){
+for(let i=0;i<36;i++){
+const x=(i*47+Math.floor(performance.now()/90)*3)%W;
+const y=(i*29+Math.floor(performance.now()/65)*5)%H;
+line(x,y,x-2,y+6,'#9eafc155',1);
+}
+}
+
+function drawApartment(side){
+const x=side==='left'?0:240;
+rect(x,0,240,270,side==='left'?'#222b3b':'#282738');
+rect(x,0,240,150,side==='left'?'#263b50':'#302c40');
+
+rect(x+12,22,216,96,'#182a3d');
+for(let i=0;i<9;i++){
+const bx=x+17+i*25;
+rect(bx,42+(i%3)*7,18,75,'#263b4b');
+for(let j=0;j<4;j++)for(let k=0;k<4;k++){
+if((i+j+k)%3!==0)rect(bx+3+k*4,48+(i%3)*7+j*13,2,3,'#d5a76c');
+}
+}
+
+rect(x+12,20,216,4,'#596071');
+rect(x+12,118,216,4,'#596071');
+rect(x+116,22,4,96,'#596071');
+
+rect(x,150,240,120,side==='left'?'#4b3b37':'#493d45');
+rect(x,150,240,6,'#786050');
+rect(x+15,177,70,42,'#66534b');
+rect(x+20,182,60,31,'#b27e62');
+rect(x+15,220,72,5,'#302a2c');
+rect(x+165,175,48,54,'#302c35');
+rect(x+170,181,38,38,'#7b6258');
+rect(x+155,230,65,6,'#292632');
+
+rect(x+130,138,4,31,'#292632');
+rect(x+124,133,16,6,'#e5bd7c');
+
+if(side==='left'){
+drawPerson(x+56,220,'sasha',1,0);
+pixelText('САША',x+18,258,7,'#e6c997');
+}else{
+drawPerson(x+183,220,'anya',1,0);
+pixelText('АНЯ',x+170,258,7,'#e6c997');
+}
+}
+
+function drawIntro(){
+rect(0,0,W,H,'#151c2a');
+drawApartment('left');
+drawApartment('right');
+rect(237,0,6,270,'#11131c');
+rect(238,0,2,270,'#d5b17a');
+rect(0,0,W,16,'#111827aa');
+pixelText('ГРИБОЕДОВ КАНАЛ, 168',12,12,6,'#e4c99c');
+pixelText('ПР. КУЗНЕЦОВА, 17',468,12,6,'#e4c99c','right');
+pixelText('23:47',218,142,8,'#e4d1ad','right');
+pixelText('23:47',262,142,8,'#e4d1ad');
+rect(0,0,W,H,'#0b142022');
+}
+
+function drawStreet(){
+rect(0,0,W,H,'#172436');
+rect(0,0,W,150,'#1b2b40');
+
+for(let i=0;i<8;i++){
+const x=i*65-8,h=75+(i%3)*24;
+rect(x,100-h,55,h,'#303847');
+rect(x+4,104-h,47,h-4,'#42414a');
+for(let r=0;r<3;r++)for(let c=0;c<3;c++){
+rect(x+9+c*13,111-h+r*19,6,9,(i+r+c)%3===0?'#38485a':'#d0a56b');
+}
+}
+
+rect(0,151,W,38,'#263e50');
+rect(0,188,W,82,'#34343d');
+rect(0,188,W,3,'#9c8b78');
+for(let i=0;i<8;i++)rect(i*70+12,220+(i%2)*10,32,2,'#6a5a4e');
+
+rect(360,62,120,126,'#5d5552');
+rect(367,68,106,120,'#80736a');
+rect(360,60,120,8,'#a18b72');
+rect(371,80,98,4,'#b49a7b');
+
+for(let i=0;i<4;i++){
+rect(375+i*24,96,12,25,'#25384b');
+rect(373+i*24,93,16,3,'#b9a184');
+rect(375+i*24,139,12,24,'#25384b');
+rect(373+i*24,136,16,3,'#b9a184');
+}
+
+rect(414,164,18,24,'#302b2d');
+rect(408,159,30,5,'#bba181');
+rect(350,188,130,5,'#d0b38b');
+
+rect(322,91,2,95,'#20242c');
+rect(315,88,16,4,'#252a31');
+rect(318,78,10,10,'#e9bd7a');
+rect(312,88,22,45,'#e6b76a14');
+drawRain();
+}
+
+function drawPub(){
+rect(0,0,W,H,'#211d20');
+rect(0,0,W,174,'#382c2b');
+rect(0,174,W,96,'#241e22');
+
+for(let x=0;x<W;x+=80)rect(x,0,7,175,'#17191e');
+rect(0,48,W,8,'#17191e');
+rect(0,162,W,10,'#17191e');
+
+for(let r=0;r<8;r++)for(let c=0;c<16;c++){
+if((r+c)%2===0)rect(c*31+(r%2)*8,65+r*12,24,1,'#604442');
+}
+
+rect(18,70,126,78,'#211c20');
+rect(22,75,118,5,'#9a7350');
+
+for(let i=0;i<7;i++){
+rect(28+i*15,88,8,35,['#8b553c','#a67b48','#51636a'][i%3]);
+rect(27+i*15,84,10,4,'#d1b27b');
+}
+
+rect(16,148,135,8,'#a07a52');
+
+rect(178,24,49,66,'#151a22');
+rect(182,28,41,58,'#b78d59');
+rect(186,32,33,50,'#34414a');
+pixelText('LIVE',202,52,8,'#f1d4a3','center');
+pixelText('MUSIC',202,64,6,'#f1d4a3','center');
+
+rect(250,28,64,56,'#151a22');
+rect(254,32,56,48,'#a27b5b');
+pixelText('BLACKWOOD',282,52,7,'#2b2020','center');
+pixelText('PUB',282,65,8,'#2b2020','center');
+
+rect(155,191,111,12,'#76513a');
+rect(164,203,8,35,'#382a27');
+rect(250,203,8,35,'#382a27');
+rect(304,183,92,10,'#78533a');
+rect(312,193,7,34,'#382a27');
+rect(382,193,7,34,'#382a27');
+
+for(const [x,y] of [[85,34],[340,35],[425,60]]){
+rect(x,y,4,26,'#25232a');
+rect(x-8,y+22,20,7,'#e9bd79');
+rect(x-12,y+29,28,36,'#e4a9570c');
+}
+
+rect(395,91,65,78,'#151e2b');
+rect(400,96,55,68,'#28394a');
+rect(426,96,3,68,'#665448');
+rect(400,128,55,3,'#665448');
+
+rect(0,247,W,23,'#15151b');
+pixelText('НЕВСКИЙ ПРОСПЕКТ · ВЕЧЕР',12,262,7,'#d6b98b');
+drawPerson(315,177,'anya',1,0);
+}
+
+function drawHome(){
+rect(0,0,W,H,'#342b30');
+rect(0,0,W,178,'#59464a');
+rect(0,178,W,92,'#3b3034');
+
+for(let y=10;y<175;y+=24)for(let x=8;x<475;x+=28){
+rect(x,y,2,2,'#8b6c66');
+rect(x+12,y+9,2,2,'#8b6c66');
+}
+
+windowGlow(22,28,104,82,true);
+rect(14,22,8,97,'#6b4a4b');
+rect(126,22,8,97,'#6b4a4b');
+rect(14,22,18,102,'#875d60');
+rect(116,22,18,102,'#875d60');
+
+rect(145,164,152,42,'#75545b');
+rect(153,154,136,22,'#946d70');
+rect(151,203,8,29,'#312a2d');
+rect(286,203,8,29,'#312a2d');
+rect(164,174,42,26,'#b0837b');
+rect(212,174,42,26,'#b0837b');
+
+rect(120,226,220,25,'#6b4d4a');
+rect(184,216,83,8,'#50372f');
+rect(190,224,5,13,'#30282a');
+rect(256,224,5,13,'#30282a');
+
+rect(352,170,28,48,'#9a643c');
+rect(360,156,12,28,'#b27a4b');
+rect(364,149,4,29,'#e0c18c');
+rect(360,192,12,3,'#4b2e25');
+rect(364,181,4,21,'#e5c99a');
+
+rect(407,58,56,166,'#29252a');
+rect(414,65,42,159,'#6b514a');
+rect(421,72,28,145,'#282b32');
+rect(445,143,3,4,'#d7b87d');
+
+rect(315,90,3,72,'#30272a');
+rect(305,85,24,8,'#e5b977');
+rect(297,93,40,58,'#e9bd7612');
+
+drawPerson(80,225,'sasha');
+drawPerson(215,225,'anya');
+}
+
+function drawCottage(){
+rect(0,0,W,H,'#182b38');
+rect(0,0,W,165,'#203d4b');
+
+for(let i=0;i<9;i++){
+let x=i*62-15,h=90+(i%4)*23;
+rect(x+14,165-h,4,h,'#192a2d');
+for(let j=0;j<4;j++){
+rect(x+2-j*5,165-h+j*20,28+j*10,15,'#1e3936');
+}
+}
+
+rect(0,164,W,106,'#76563f');
+for(let y=175;y<270;y+=13)rect(0,y,W,2,'#4d3a32');
+rect(0,154,W,8,'#c19a6c');
+
+for(let x=20;x<480;x+=54){
+rect(x,117,5,51,'#684b3a');
+rect(x-4,115,13,5,'#c5a078');
+}
+rect(0,120,W,4,'#c29d70');
+
+rect(0,0,124,165,'#634c42');
+windowGlow(22,33,78,78,true);
+rect(13,25,95,5,'#9c7959');
+
+rect(89,190,67,13,'#4b382d');
+rect(95,203,6,39,'#302a27');
+rect(146,203,6,39,'#302a27');
+rect(265,185,92,9,'#50382c');
+rect(273,194,6,30,'#302a27');
+rect(345,194,6,30,'#302a27');
+rect(322,178,12,5,'#252b37');
+rect(325,174,6,4,'#8ac0d3');
+drawPerson(100,220,'sasha');
+
+// Видеозвонок: изображение Ани на экране телефона
+rect(382,34,72,91,'#101722');
+rect(387,40,62,78,'#26384a');
+rect(393,46,50,48,'#d7a982');
+rect(392,42,52,10,'#d9c18c');
+rect(390,49,6,39,'#cdb47d');
+rect(439,49,6,39,'#cdb47d');
+rect(401,59,3,3,'#302b2a');
+rect(429,59,3,3,'#302b2a');
+rect(399,94,38,19,'#8b5260');
+pixelText('АНЯ · ВИДЕО',418,136,6,'#e4c99c','center');
+}
+
+function drawBathroom(){
+rect(0,0,W,H,'#343a42');
+rect(0,0,W,170,'#6b7378');
+rect(0,170,W,100,'#4b4d54');
+
+for(let y=0;y<165;y+=27){
+line(0,y,W,y,'#9aa0a055');
+for(let x=(y%54?0:24);x<W;x+=48)line(x,y,x,y+27,'#9aa0a055');
+}
+
+rect(20,170,180,52,'#d0d1cb');
+rect(26,177,168,39,'#aeb7b8');
+rect(20,169,180,8,'#ece8df');
+rect(31,220,10,18,'#77777a');
+rect(181,220,10,18,'#77777a');
+
+rect(244,24,113,91,'#343e49');
+rect(250,30,101,79,'#a9c1c6');
+rect(256,36,89,67,'#718f9a');
+rect(298,30,4,79,'#e0d5c1');
+rect(250,67,101,3,'#e0d5c1');
+rect(269,127,66,8,'#ddd8ce');
+rect(277,135,50,24,'#b9c3c0');
+rect(286,135,32,8,'#e3e1d8');
+
+rect(392,70,44,55,'#8c6670');
+rect(398,77,32,40,'#b98a8d');
+rect(220,0,4,18,'#30333a');
+rect(207,16,30,6,'#e8c58b');
+rect(195,22,54,30,'#e7c18110');
+
+drawPerson(100,222,'sasha');
+drawPerson(315,222,'anya');
+}
+
+function drawChat(){
+rect(0,0,W,H,'#101b2a');
+rect(0,0,W,270,'#182638');
+
+for(let i=0;i<25;i++){
+const x=(i*71)%480,y=(i*37)%270;
+rect(x,y,1,1,'#d4d8d855');
+}
+
+rect(126,16,228,238,'#202c3b');
+rect(132,22,216,226,'#121d2b');
+rect(132,22,216,30,'#283a4b');
+pixelText('Сообщения',240,41,9,'#f0dfc3','center');
+
+const bubbles=[
+[144,70,78,'#536b75',4],
+[250,101,75,'#76545b',3],
+[144,133,120,'#536b75',5],
+[232,166,104,'#76545b',4],
+[144,202,180,'#536b75',6]
+];
+
+for(const b of bubbles){
+rect(b[0],b[1],b[2],24,b[3]);
+for(let k=0;k<b[4];k++){
+rect(b[0]+7+k*7,b[1]+8,4,2,'#e6ded2aa');
+}
+}
+
+pixelText('1,5 МЕСЯЦА ОБЩЕНИЯ',240,261,7,'#c9b18b','center');
+}
+
+function drawMontage(){
+rect(0,0,W,H,'#151a29');
+const scenes2=[['ПЕТЕРБУРГ',0],['ТИХИЕ ВЕЧЕРА',1],['ОБЩИЕ МОМЕНТЫ',2]];
+rect(0,0,W,270,'#1a2636');
+
+for(let i=0;i<3;i++){
+const x=20+i*150;
+rect(x,42,130,165,'#2c3542');
+rect(x+5,47,120,155,['#394d59','#59454a','#3c4a4a'][i]);
+
+if(i===0){
+rect(x+12,60,106,50,'#20384b');
+for(let k=0;k<4;k++)rect(x+18+k*25,72,8,28,'#d6aa70');
+rect(x+8,137,112,30,'#4d4a4d');
+}else if(i===1){
+rect(x+18,80,94,58,'#76545b');
+rect(x+24,88,82,42,'#b17f79');
+rect(x+34,144,62,12,'#a88763');
+}else{
+rect(x+20,75,90,72,'#253e4a');
+rect(x+30,86,70,48,'#b0a18a');
+}
+
+pixelText(scenes2[i][0],x+65,225,7,'#e5cda7','center');
+}
+
+pixelText('ПРОХОДИТ ВРЕМЯ',240,252,8,'#d5b98c','center');
+}
+
+function drawEnding(){
+rect(0,0,W,H,'#172333');
+
+for(let i=0;i<10;i++){
+let x=i*55;
+rect(x,80+(i%3)*10,45,130,'#343d4a');
+for(let j=0;j<3;j++){
+rect(x+8+j*12,95+(i%3)*10,5,8,'#d7ad71');
+}
+}
+
+rect(0,205,W,65,'#30343d');
+drawPerson(218,222,'sasha',1.25);
+drawPerson(262,222,'anya',1.25);
+rect(229,183,22,3,'#d4a36f');
+pixelText('ИСТОРИЯ ПРОДОЛЖИТСЯ…',240,54,12,'#f0d7ad','center');
+pixelText('01 МАЯ',240,70,7,'#c5b18f','center');
+}
+
+function drawScene(){
+ctx.clearRect(0,0,W,H);
+const s=scenes[state.scene];
+if(!s)return;
+
+switch(s.kind){
+case'split':drawIntro();break;
+case'chat':drawChat();break;
+case'pub':
+drawPub();
+drawPerson(state.x,state.y,'sasha',1,Math.floor(walkTick)%2);
+break;
+case'street':
+drawStreet();
+if(state.scene==='flowers'&&state.flags.haveFlowers){
+rect(74,199,7,15,'#4c8b65');
+rect(69,194,17,7,'#e5b9c1');
+}
+drawPerson(state.x,state.y,'sasha',1,Math.floor(walkTick)%2);
+break;
+case'home':drawHome();break;
+case'montage':drawMontage();break;
+case'cottage':drawCottage();break;
+case'bath':drawBathroom();break;
+case'ending':drawEnding();break;
+}
+
+if(state.scene!=='intro'&&state.scene!=='chat'&&state.scene!=='montage'&&state.scene!=='ending'){
+near=findNear();
+if(near&&!state.dialogue){
+pixelText('E  '+near.label.toUpperCase(),Math.min(near.x,390),Math.max(20,near.y-48),7,'#f5d9a8');
+}
+}
+
+if(state.scene==='intro'){
+pixelText('ДВА ЧЕЛОВЕКА · ДВА ОКНА',240,244,8,'#e9d4b0','center');
+}
+if(state.scene==='chat'){
+pixelText('НАЖМИ E, ЧТОБЫ ПРОДОЛЖИТЬ',240,16,7,'#e9d4b0','center');
+}
+
+noise(13,130);
+vignette();
+
+chapterEl.textContent=chapters[s.chapter]||'';
+hintEl.textContent=(state.scene==='intro'||state.scene==='chat'||state.scene==='montage'||state.scene==='ending')
+?'ПРОБЕЛ / E — ДАЛЬШЕ'
+:'WASD / СТРЕЛКИ — ДВИЖЕНИЕ · E — ДЕЙСТВИЕ';
+}
+
+function findNear(){
+const s=scenes[state.scene];
+let best=null,dist=999;
+
+for(const o of s.objects||[]){
+const d=Math.hypot(state.x-o.x,state.y-o.y);
+if(d<dist&&d<54){best=o;dist=d;}
+}
+return best;
+}
+
+function say(speaker,text,after=null){
+state.dialogue={speaker,text,after};
+state.locked=true;
+speakerEl.textContent=speaker;
+textEl.textContent=text;
+choicesEl.innerHTML='';
+dialogueEl.style.display='block';
+}
+
+function closeDialogue(){
+if(!state.dialogue)return;
+const after=state.dialogue.after;
+state.dialogue=null;
+state.locked=false;
+dialogueEl.style.display='none';
+if(after)after();
+save();
+}
+
+function choiceDialog(speaker,text,options){
+state.dialogue={speaker,text,after:null};
+state.locked=true;
+speakerEl.textContent=speaker;
+textEl.textContent=text;
+choicesEl.innerHTML='';
+
+options.forEach(o=>{
+const b=document.createElement('button');
+b.className='choice';
+b.textContent=o.label;
+b.addEventListener('click',()=>{
+choicesEl.innerHTML='';
+state.dialogue=null;
+state.locked=false;
+dialogueEl.style.display='none';
+o.run();
+save();
+});
+choicesEl.appendChild(b);
+});
+
+dialogueEl.style.display='block';
+}
+
+function go(scene){
+state.scene=scene;
+state.x=scenes[scene].spawn[0];
+state.y=scenes[scene].spawn[1];
+state.dialogue=null;
+state.locked=false;
+dialogueEl.style.display='none';
+save();
+}
+
+function interact(){
+if(state.dialogue){closeDialogue();return;}
+
+if(state.scene==='intro'){
+if(!state.done.intro){
+state.done.intro=true;
+say('За кадром','Поздний вечер. В двух разных квартирах Петербурга Саша и Аня листают анкеты. Они ещё не знают друг друга. Но у каждой истории есть первая секунда.',()=>{
+say('За кадром','Два окна. Два отдельных вечера. И маленькое совпадение, которое однажды станет чем-то большим.',()=>go('chat'));
+});
+}else go('chat');
+return;
+}
+
+if(state.scene==='chat'){
+if(!state.done.chat){
+state.done.chat=true;
+say('За кадром','Они начинают общаться. Переписка длится примерно полтора месяца. Сообщения становятся привычной частью дня.',()=>{
+say('Аня','Я уже замуж выйду, пока мы встретимся.',()=>{
+say('За кадром','Наконец они договариваются увидеться вживую.',()=>go('pub'));
+});
+});
+}else go('pub');
+return;
+}
+
+if(state.scene==='pub'){
+if(near?.id==='anya'){
+if(!state.done.pubanya){
+state.done.pubanya=true;
+say('За кадром','Первое свидание — Blackwood на Невском. Аня заказывает виски с колой, Саша — пиво. Они разговаривают, постепенно привыкая друг к другу.');
+}else say('За кадром','Разговор продолжается. Вечер не хочется торопить.');
+return;
+}
+
+if(near?.id==='table'){
+say('За кадром','За столиком они проводят время вместе. Точные темы разговора уже не вспомнить — остались ощущения от первой встречи.');
+return;
+}
+
+if(near?.id==='door'){
+choiceDialog('Саша','Предложить продолжить вечер у Ани — у неё есть гитара?',[
+{label:'Предложить гитару',run:()=>{
+say('За кадром','Саша предлагает сыграть на гитаре. Они решают продолжить вечер у Ани.',()=>go('walk'));
+}},
+{label:'Ещё немного посидеть',run:()=>{
+say('За кадром','Они остаются ещё ненадолго. Потом всё-таки выходят вместе.');
+}}
+]);
+return;
+}
+
+say('За кадром','Тёплый свет, дерево, музыка и первый вечер лицом к лицу.');
+return;
+}
+
+if(state.scene==='walk'){
+if(near?.id==='shop'){
+if(!state.flags.bought){
+state.flags.bought=true;
+say('За кадром','По дороге они заходят в магазин за виски и колой.');
+}else say('За кадром','Пакет с напитками уже у Саши.');
+return;
+}
+
+if(near?.id==='anyaDoor'){
+if(!state.flags.bought){
+choiceDialog('Саша','До квартиры Ани осталось немного. Зайти сначала в магазин?',[
+{label:'Зайти за напитками',run:()=>{
+state.flags.bought=true;
+say('За кадром','Они покупают виски и колу и идут дальше.');
+}},
+{label:'Идти к Ане',run:()=>go('anyaHome')}
+]);
+}else go('anyaHome');
+return;
+}
+
+say('За кадром','Ночной Петербург. Дождь блестит на асфальте, а впереди — продолжение вечера.');
+return;
+}
+
+if(state.scene==='anyaHome'){
+if(near?.id==='guitar'){
+if(!state.done.guitar){
+state.done.guitar=true;
+say('За кадром','У Ани дома есть гитара. Саша предлагает сыграть. Вечер становится спокойным и очень личным.');
+}else say('За кадром','Гитара стоит рядом. В памяти остался тот домашний вечер.');
+return;
+}
+
+if(near?.id==='sofa'){
+if(!state.done.kiss){
+state.done.kiss=true;
+say('За кадром','Они разговаривают, смеются, проводят вечер рядом. Позже ложатся на одну кровать и целуются.',()=>{
+say('За кадром','Так заканчивается их первое совместное свидание.');
+});
+}else{
+choiceDialog('За кадром','Перейти к следующей части истории?',[
+{label:'Продолжить',run:()=>go('closer')},
+{label:'Остаться на минуту',run:()=>say('За кадром','Иногда важнее всего — просто побыть рядом.')}
+]);
+}
+return;
+}
+
+if(near?.id==='kitchen'){
+say('За кадром','На кухне — обычные домашние вещи. Но именно такие детали делают вечер настоящим.');
+return;
+}
+
+say('За кадром','Квартира Ани. Тёплый свет, гитара и ощущение, что вечер может длиться бесконечно.');
+return;
+}
+
+if(state.scene==='closer'){
+if(!state.done.montage){
+state.done.montage=true;
+say('За кадром','После первого свидания они всё чаще проводят время вместе. Отношения становятся ближе. Здесь остаются только общие моменты — без придуманных подробностей.',()=>{
+choiceDialog('За кадром','Перейти к тому вечеру на веранде?',[
+{label:'Да, дальше',run:()=>go('cottage')}
+]);
+});
+}else go('cottage');
+return;
+}
+
+if(state.scene==='cottage'){
+if(!state.done.call){
+state.done.call=true;
+say('За кадром','Саша в отпуске, в домике с верандой. Аня дома. Они созваниваются по видео.',()=>{
+say('Саша','Я люблю тебя.',()=>{
+say('За кадром','На несколько секунд между ними повисает тёплая тишина. На следующий день Саша возвращается к ней с цветами.',()=>go('flowers'));
+});
+});
+}else go('flowers');
+return;
+}
+
+if(state.scene==='flowers'){
+if(near?.id==='flowers'){
+if(!state.flags.haveFlowers){
+state.flags.haveFlowers=true;
+say('За кадром','Саша выбирает цветы для Ани.');
+}else say('За кадром','Цветы уже с ним.');
+return;
+}
+
+if(near?.id==='door'){
+if(!state.done.flowers){
+state.done.flowers=true;
+say('За кадром','На следующий день Саша встречает Аню с цветами у своего дома.',()=>go('bathroom'));
+}else go('bathroom');
+return;
+}
+
+say('За кадром','Следующий день после признания.');
+return;
+}
+
+if(state.scene==='bathroom'){
+if(near?.id==='anya'){
+if(!state.done.talk){
+state.done.talk=true;
+say('За кадром','Первого мая они сидят в ванной комнате у Ани и обсуждают, почему до сих пор не называют себя парой.',()=>{
+choiceDialog('Саша','Давай встречаться.',[
+{label:'Сказать это',run:()=>{
+state.flags.together=true;
+say('Аня','…',()=>{
+say('За кадром','Так начинается их история как пары. Не идеальная сказка, а настоящее начало двух людей, которые решили быть вместе.',()=>go('ending'));
+});
+}}
+]);
+});
+}else say('За кадром','В памяти остаётся этот разговор и простая фраза, с которой всё изменилось.');
+return;
+}
+
+if(near?.id==='mirror'){
+say('За кадром','Обычная ванная комната. Необычный разговор, который они оба запомнят.');
+return;
+}
+
+say('За кадром','Первое мая. Они наконец говорят вслух о том, что между ними происходит.');
+return;
+}
+
+if(state.scene==='ending'){
+say('За кадром','Это только начало. Дальше история будет продолжаться — уже с новыми главами, которые основаны на ваших воспоминаниях.');
+return;
+}
+}
+
+function move(dt){
+if(state.locked||state.scene==='intro'||state.scene==='chat'||state.scene==='montage'||state.scene==='ending')return;
+
+let dx=0,dy=0;
+
+if(keys.ArrowLeft||keys.KeyA||touchMove.x<0)dx=-1;
+if(keys.ArrowRight||keys.KeyD||touchMove.x>0)dx=1;
+if(keys.ArrowUp||keys.KeyW||touchMove.y<0)dy=-1;
+if(keys.ArrowDown||keys.KeyS||touchMove.y>0)dy=1;
+
+if(dx||dy){
+const l=Math.hypot(dx,dy);
+dx/=l;dy/=l;
+state.x=Math.max(16,Math.min(464,state.x+dx*82*dt));
+state.y=Math.max(120,Math.min(244,state.y+dy*82*dt));
+state.face=dx<0?-1:1;
+walkTick+=dt*8;
+}
+}
+
+function loop(t){
+const dt=Math.min(.04,(t-state.lastTime)/1000||0);
+state.lastTime=t;
+move(dt);
+
+if(state.toastTimer>0){
+state.toastTimer-=dt;
+if(state.toastTimer<=0)toastEl.style.opacity='0';
+}
+
+drawScene();
+requestAnimationFrame(loop);
+}
+
+function start(){
+startEl.style.display='none';
+state.started=true;
+if(!load()){
+state.scene='intro';
+state.x=240;
+state.y=220;
+}
+save();
+toast('История началась');
+}
+
+document.getElementById('startBtn').addEventListener('click',start);
+
+window.addEventListener('keydown',e=>{
+if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code))e.preventDefault();
+keys[e.code]=true;
+if(e.code==='KeyE'||e.code==='Space'||e.code==='Enter'){
+if(!state.started)return;
+interact();
+}
+});
+
+window.addEventListener('keyup',e=>{keys[e.code]=false;});
+window.addEventListener('blur',()=>{
+keys={};
+touchMove={x:0,y:0};
+});
+
+document.querySelectorAll('[data-move]').forEach(b=>{
+const dir=b.dataset.move;
+const set=(v)=>{
+if(dir==='left')touchMove.x=v?-1:0;
+if(dir==='right')touchMove.x=v?1:0;
+if(dir==='up')touchMove.y=v?-1:0;
+if(dir==='down')touchMove.y=v?1:0;
+};
+b.addEventListener('pointerdown',e=>{
+e.preventDefault();
+b.setPointerCapture(e.pointerId);
+set(true);
+});
+['pointerup','pointercancel','lostpointercapture'].forEach(ev=>{
+b.addEventListener(ev,()=>set(false));
+});
+});
+
+document.getElementById('action').addEventListener('pointerdown',e=>{
+e.preventDefault();
+interact();
+});
+
+canvas.addEventListener('pointerdown',()=>{
+if(state.dialogue)closeDialogue();
+else if(state.scene==='intro'||state.scene==='chat'||state.scene==='montage'||state.scene==='ending')interact();
+});
+
+dialogueEl.addEventListener('pointerdown',e=>{
+if(e.target.classList.contains('choice'))return;
+if(state.dialogue&&choicesEl.children.length===0)closeDialogue();
+});
+
+if(load()){
+document.getElementById('saveNote').textContent='Найдено сохранение · Нажми «Начать историю», чтобы продолжить';
+}
+
+requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
